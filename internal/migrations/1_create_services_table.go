@@ -3,10 +3,10 @@ package migrations
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func CreateServicesTable(conn *pgx.Conn) error {
+func CreateServicesTable(db *pgxpool.Pool) error {
 	query := `
 	CREATE TABLE IF NOT EXISTS services (
 		id SERIAL PRIMARY KEY,
@@ -17,12 +17,12 @@ func CreateServicesTable(conn *pgx.Conn) error {
 	);
 	`
 
-	_, err := conn.Exec(context.Background(), query)
+	_, err := db.Exec(context.Background(), query)
 	return err
 }
 
-func RollbackCreateServicesTable(conn *pgx.Conn) error {
+func RollbackCreateServicesTable(db *pgxpool.Pool) error {
 	query := `DROP TABLE IF EXISTS services;`
-	_, err := conn.Exec(context.Background(), query)
+	_, err := db.Exec(context.Background(), query)
 	return err
 }

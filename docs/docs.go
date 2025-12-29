@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/services.RegisterServiceDTO"
+                            "$ref": "#/definitions/monitor.RegisterServiceDTO"
                         }
                     }
                 ],
@@ -72,7 +72,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "services.RegisterServiceDTO": {
+        "monitor.RegisterServiceDTO": {
             "type": "object",
             "required": [
                 "check_interval",
@@ -97,8 +97,10 @@ const docTemplate = `{
         }
     },
     "securityDefinitions": {
-        "BasicAuth": {
-            "type": "basic"
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`

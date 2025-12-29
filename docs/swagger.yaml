@@ -1,6 +1,6 @@
 basePath: /api/v1
 definitions:
-  services.RegisterServiceDTO:
+  monitor.RegisterServiceDTO:
     properties:
       check_interval:
         example: 60
@@ -35,7 +35,7 @@ paths:
         name: service
         required: true
         schema:
-          $ref: '#/definitions/services.RegisterServiceDTO'
+          $ref: '#/definitions/monitor.RegisterServiceDTO'
       produces:
       - application/json
       responses:
@@ -61,6 +61,8 @@ paths:
       tags:
       - services
 securityDefinitions:
-  BasicAuth:
-    type: basic
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

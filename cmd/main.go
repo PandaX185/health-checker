@@ -11,9 +11,12 @@
 package main
 
 import (
+	"context"
 	"health-checker/internal/app"
-	"health-checker/internal/config"
-	"health-checker/internal/services"
+	"health-checker/internal/database"
+	"health-checker/internal/logger"
+	"health-checker/internal/migrations"
+	"health-checker/internal/monitor"
 	"log"
 	"os"
 
@@ -25,23 +28,38 @@ import (
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("No .env file found, using environment variables")
 	}
 
-	logger := config.NewLogger(os.Getenv("ENV"))
-	defer logger.Sync()
+	log := logger.New(os.Getenv("ENV"))
+	defer log.Sync()
 
-	config.NewDatabase(os.Getenv("DATABASE_URL"))
-	if err := config.Migrate(); err != nil {
-		logger.Fatal("Database migration failed", zap.Error(err))
+	log.Info("Starting Health Checker Application")
+
+	dbPool, err := database.New(context.Background(), os.Getenv("DATABASE_URL"), log)
+	if err != nil {
+		log.Fatal("Failed to connect to database", zap.Error(err))
+	}
+	defer database.Close()
+
+	if err := migrations.Migrate(dbPool); err != nil {
+		log.Fatal("Database migration failed", zap.Error(err))
 	}
 
-	srv := app.NewServer(logger)
-	apiGroup := srv.Group("/api/v1")
+	monitorRepo := monitor.NewRepository(dbPool)
+	monitorService := monitor.NewService(monitorRepo)
+	monitorHandler := monitor.NewHandler(monitorService)
 
-	services.RegisterServicesRoutes(apiGroup.Group("/services"), services.NewServicesController())
+	srv := app.NewServer(log)
 
-	if err := srv.Run(os.Getenv("PORT")); err != nil {
-		logger.Fatal("Failed to run server", zap.Error(err))
+	v1 := srv.Group("/api/v1")
+	monitorHandler.RegisterRoutes(v1.Group("/services"))
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = ":8080"
+	}
+	if err := srv.Run(port); err != nil {
+		log.Fatal("Failed to run server", zap.Error(err))
 	}
 }
