@@ -57,7 +57,7 @@ func TestService_Login(t *testing.T) {
 
 		password := "password123"
 		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		
+
 		user := User{
 			ID:       1,
 			Username: "testuser",
@@ -100,7 +100,7 @@ func TestService_Login(t *testing.T) {
 
 		password := "password123"
 		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		
+
 		user := User{
 			ID:       1,
 			Username: "testuser",
