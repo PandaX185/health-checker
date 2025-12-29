@@ -1,0 +1,148 @@
+package monitor
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
+type MockRepository struct {
+	mock.Mock
+}
+
+func (m *MockRepository) Create(ctx context.Context, service Service) error {
+	args := m.Called(ctx, service)
+	return args.Error(0)
+}
+
+func (m *MockRepository) ListServices(ctx context.Context) ([]Service, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]Service), args.Error(1)
+}
+
+func setupRouter() *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	return gin.Default()
+}
+
+func TestRegisterService(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		mockRepo := new(MockRepository)
+		service := NewService(mockRepo)
+		handler := NewHandler(service)
+
+		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("monitor.Service")).Return(nil)
+
+		r := setupRouter()
+		r.POST("/services", handler.RegisterService)
+
+		dto := RegisterServiceDTO{
+			Name:          "Test Service",
+			URL:           "http://example.com",
+			CheckInterval: 60,
+		}
+		jsonValue, _ := json.Marshal(dto)
+		req, _ := http.NewRequest("POST", "/services", bytes.NewBuffer(jsonValue))
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("BadRequest", func(t *testing.T) {
+		mockRepo := new(MockRepository)
+		service := NewService(mockRepo)
+		handler := NewHandler(service)
+
+		r := setupRouter()
+		r.POST("/services", handler.RegisterService)
+
+		req, _ := http.NewRequest("POST", "/services", bytes.NewBuffer([]byte("invalid json")))
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("InternalServerError", func(t *testing.T) {
+		mockRepo := new(MockRepository)
+		service := NewService(mockRepo)
+		handler := NewHandler(service)
+
+		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("monitor.Service")).Return(errors.New("db error"))
+
+		r := setupRouter()
+		r.POST("/services", handler.RegisterService)
+
+		dto := RegisterServiceDTO{
+			Name:          "Test Service",
+			URL:           "http://example.com",
+			CheckInterval: 60,
+		}
+		jsonValue, _ := json.Marshal(dto)
+		req, _ := http.NewRequest("POST", "/services", bytes.NewBuffer(jsonValue))
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		mockRepo.AssertExpectations(t)
+	})
+}
+
+func TestListServices(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		mockRepo := new(MockRepository)
+		service := NewService(mockRepo)
+		handler := NewHandler(service)
+
+		expectedServices := []Service{
+			{ID: 1, Name: "Service 1", URL: "http://s1.com", CheckInterval: 60, CreatedAt: time.Now()},
+			{ID: 2, Name: "Service 2", URL: "http://s2.com", CheckInterval: 120, CreatedAt: time.Now()},
+		}
+		mockRepo.On("ListServices", mock.Anything).Return(expectedServices, nil)
+
+		r := setupRouter()
+		r.GET("/services", handler.ListServices)
+
+		req, _ := http.NewRequest("GET", "/services", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response []Service
+		json.Unmarshal(w.Body.Bytes(), &response)
+		assert.Len(t, response, 2)
+		assert.Equal(t, expectedServices[0].Name, response[0].Name)
+
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("InternalServerError", func(t *testing.T) {
+		mockRepo := new(MockRepository)
+		service := NewService(mockRepo)
+		handler := NewHandler(service)
+
+		mockRepo.On("ListServices", mock.Anything).Return([]Service{}, errors.New("db error"))
+
+		r := setupRouter()
+		r.GET("/services", handler.ListServices)
+
+		req, _ := http.NewRequest("GET", "/services", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		mockRepo.AssertExpectations(t)
+	})
+}

@@ -18,6 +18,7 @@ func NewHandler(service *MonitoringService) *Handler {
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.Use(middleware.AuthMiddleware())
 	rg.POST("", h.RegisterService)
+	rg.GET("", h.ListServices)
 }
 
 // RegisterService godoc
@@ -46,4 +47,24 @@ func (h *Handler) RegisterService(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Service registered successfully"})
+}
+
+// ListServices godoc
+//
+//	 @Security BearerAuth
+//		@Summary		List all registered services
+//		@Description	Retrieve a list of all services registered for health monitoring
+//		@Tags			services
+//		@Produce		json
+//		@Success		200		{array}		Service	"List of registered services"
+//		@Failure		500		{object}	map[string]string	"Internal server error"
+//		@Router			/services [get]
+func (h *Handler) ListServices(ctx *gin.Context) {
+	services, err := h.service.ListServices(ctx.Request.Context())
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, services)
 }

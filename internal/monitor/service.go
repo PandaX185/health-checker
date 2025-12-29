@@ -22,3 +22,7 @@ func (s *MonitoringService) Register(ctx context.Context, dto RegisterServiceDTO
 	}
 	return s.repo.Create(ctx, service)
 }
+
+func (s *MonitoringService) ListServices(ctx context.Context) ([]Service, error) {
+	return s.repo.ListServices(ctx)
+}
