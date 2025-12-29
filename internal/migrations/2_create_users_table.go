@@ -6,13 +6,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func CreateServicesTable(db *pgxpool.Pool) error {
+func CreateUsersTable(db *pgxpool.Pool) error {
 	query := `
-	CREATE TABLE IF NOT EXISTS services (
+	CREATE TABLE IF NOT EXISTS users (
 		id SERIAL PRIMARY KEY,
-		name VARCHAR(255) NOT NULL,
-		url VARCHAR(255) NOT NULL,
-		check_interval INT NOT NULL,
+		username VARCHAR(255) UNIQUE NOT NULL,
+		password VARCHAR(255) NOT NULL,
 		created_at TIMESTAMP WITH TIME ZONE DEFAULT clock_timestamp()
 	);
 	`
@@ -21,8 +20,8 @@ func CreateServicesTable(db *pgxpool.Pool) error {
 	return err
 }
 
-func RollbackCreateServicesTable(db *pgxpool.Pool) error {
-	query := `DROP TABLE IF EXISTS services;`
+func RollbackCreateUsersTable(db *pgxpool.Pool) error {
+	query := `DROP TABLE IF EXISTS users;`
 	_, err := db.Exec(context.Background(), query)
 	return err
 }

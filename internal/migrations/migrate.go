@@ -2,11 +2,23 @@ package migrations
 
 import "github.com/jackc/pgx/v5/pgxpool"
 
+var migrations = []func(*pgxpool.Pool) error{
+	CreateServicesTable,
+	CreateUsersTable,
+}
+
+var rollbacks = []func(*pgxpool.Pool) error{
+	RollbackCreateServicesTable,
+	RollbackCreateUsersTable,
+}
+
 func Migrate(db *pgxpool.Pool) error {
 	var err error
-	err = CreateServicesTable(db)
-	if err != nil {
-		return err
+	for _, m := range migrations {
+		err = m(db)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -14,9 +26,11 @@ func Migrate(db *pgxpool.Pool) error {
 
 func Rollback(db *pgxpool.Pool) error {
 	var err error
-	err = RollbackCreateServicesTable(db)
-	if err != nil {
-		return err
+	for _, r := range rollbacks {
+		err = r(db)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

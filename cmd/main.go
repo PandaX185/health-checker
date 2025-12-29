@@ -13,6 +13,7 @@ package main
 import (
 	"context"
 	"health-checker/internal/app"
+	"health-checker/internal/app/auth"
 	"health-checker/internal/database"
 	"health-checker/internal/logger"
 	"health-checker/internal/migrations"
@@ -42,6 +43,10 @@ func main() {
 	}
 	defer database.Close()
 
+	// if err := migrations.Rollback(dbPool); err != nil {
+	// 	log.Fatal("Database rollback failed", zap.Error(err))
+	// }
+
 	if err := migrations.Migrate(dbPool); err != nil {
 		log.Fatal("Database migration failed", zap.Error(err))
 	}
@@ -50,9 +55,14 @@ func main() {
 	monitorService := monitor.NewService(monitorRepo)
 	monitorHandler := monitor.NewHandler(monitorService)
 
+	userRepo := auth.NewRepository(dbPool)
+	userService := auth.NewService(userRepo)
+	authHandler := auth.NewHandler(userService)
+
 	srv := app.NewServer(log)
 
 	v1 := srv.Group("/api/v1")
+	authHandler.RegisterRoutes(v1.Group("/auth"))
 	monitorHandler.RegisterRoutes(v1.Group("/services"))
 
 	port := os.Getenv("PORT")
