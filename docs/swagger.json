@@ -1,0 +1,98 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "A distributed health monitoring system API.",
+        "title": "Health Checker API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {
+        "/services": {
+            "post": {
+                "description": "Register a new service for health monitoring",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "services"
+                ],
+                "summary": "Register a new service",
+                "parameters": [
+                    {
+                        "description": "Service data",
+                        "name": "service",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.RegisterServiceDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Service registered successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "services.RegisterServiceDTO": {
+            "type": "object",
+            "required": [
+                "check_interval",
+                "name",
+                "url"
+            ],
+            "properties": {
+                "check_interval": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 60
+                },
+                "name": {
+                    "type": "string",
+                    "example": "My Service"
+                },
+                "url": {
+                    "type": "string",
+                    "example": "https://example.com"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BasicAuth": {
+            "type": "basic"
+        }
+    }
+}

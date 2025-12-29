@@ -1,0 +1,66 @@
+basePath: /api/v1
+definitions:
+  services.RegisterServiceDTO:
+    properties:
+      check_interval:
+        example: 60
+        minimum: 1
+        type: integer
+      name:
+        example: My Service
+        type: string
+      url:
+        example: https://example.com
+        type: string
+    required:
+    - check_interval
+    - name
+    - url
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: A distributed health monitoring system API.
+  title: Health Checker API
+  version: "1.0"
+paths:
+  /services:
+    post:
+      consumes:
+      - application/json
+      description: Register a new service for health monitoring
+      parameters:
+      - description: Service data
+        in: body
+        name: service
+        required: true
+        schema:
+          $ref: '#/definitions/services.RegisterServiceDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Service registered successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new service
+      tags:
+      - services
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"

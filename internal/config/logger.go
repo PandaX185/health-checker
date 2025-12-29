@@ -7,10 +7,10 @@ import (
 )
 
 var logger *zap.Logger
-var once sync.Once
+var loggerOnce = &sync.Once{}
 
 func NewLogger(env string) *zap.Logger {
-	once.Do(
+	loggerOnce.Do(
 		func() {
 			var (
 				err error
