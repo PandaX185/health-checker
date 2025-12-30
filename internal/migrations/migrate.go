@@ -5,11 +5,13 @@ import "github.com/jackc/pgx/v5/pgxpool"
 var migrations = []func(*pgxpool.Pool) error{
 	CreateServicesTable,
 	CreateUsersTable,
+	CreateHealthChecksTable,
 }
 
 var rollbacks = []func(*pgxpool.Pool) error{
 	RollbackCreateServicesTable,
 	RollbackCreateUsersTable,
+	RollbackCreateHealthChecksTable,
 }
 
 func Migrate(db *pgxpool.Pool) error {
