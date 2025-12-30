@@ -1,9 +1,13 @@
 package database
 
-import "github.com/go-redis/redis/v8"
+import (
+	"os"
 
-var Rdb = redis.NewClient(
+	"github.com/go-redis/redis/v8"
+)
+
+var RdbInstance = redis.NewClient(
 	&redis.Options{
-		Addr: "localhost:6379",
+		Addr: os.Getenv("REDIS_URL"),
 	},
 )

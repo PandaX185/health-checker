@@ -3,16 +3,13 @@ package monitor
 import (
 	"context"
 
-	"time"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Repository interface {
 	Create(ctx context.Context, service Service) error
 	ListServices(ctx context.Context) ([]Service, error)
-	ListDueServices(ctx context.Context) ([]Service, error)
-	UpdateNextRunAt(ctx context.Context, serviceID int, nextRunAt time.Time) error
+	ClaimDueServices(ctx context.Context) ([]Service, error)
 	CreateHealthCheck(ctx context.Context, check HealthCheck) error
 }
 
@@ -59,13 +56,16 @@ func (r *PostgresRepository) ListServices(ctx context.Context) ([]Service, error
 	return services, nil
 }
 
-func (r *PostgresRepository) ListDueServices(ctx context.Context) ([]Service, error) {
+func (r *PostgresRepository) ClaimDueServices(ctx context.Context) ([]Service, error) {
 	query := `
-		SELECT id, name, url, check_interval, next_run_at, created_at
-		FROM services
-		WHERE next_run_at <= clock_timestamp()
-		ORDER BY next_run_at ASC
-		LIMIT 100
+		update services 
+		set next_run_at = now() + make_interval(secs => check_interval)
+		where id in (
+			select id from services 
+			where next_run_at <= now()
+			for update skip locked
+		)
+		returning id, name, url, check_interval, next_run_at, created_at
 	`
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
@@ -84,16 +84,6 @@ func (r *PostgresRepository) ListDueServices(ctx context.Context) ([]Service, er
 	}
 
 	return services, nil
-}
-
-func (r *PostgresRepository) UpdateNextRunAt(ctx context.Context, serviceID int, nextRunAt time.Time) error {
-	query := `
-		UPDATE services
-		SET next_run_at = $2
-		WHERE id = $1
-	`
-	_, err := r.db.Exec(ctx, query, serviceID, nextRunAt)
-	return err
 }
 
 func (r *PostgresRepository) CreateHealthCheck(ctx context.Context, check HealthCheck) error {

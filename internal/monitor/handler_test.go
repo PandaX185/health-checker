@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -34,14 +33,9 @@ func (m *MockRepository) CreateHealthCheck(ctx context.Context, check HealthChec
 	return args.Error(0)
 }
 
-func (m *MockRepository) ListDueServices(ctx context.Context) ([]Service, error) {
+func (m *MockRepository) ClaimDueServices(ctx context.Context) ([]Service, error) {
 	args := m.Called(ctx)
 	return args.Get(0).([]Service), args.Error(1)
-}
-
-func (m *MockRepository) UpdateNextRunAt(ctx context.Context, serviceID int, nextRunAt time.Time) error {
-	args := m.Called(ctx, serviceID, nextRunAt)
-	return args.Error(0)
 }
 
 func setupRouter() *gin.Engine {
@@ -121,8 +115,8 @@ func TestListServices(t *testing.T) {
 		handler := NewHandler(service)
 
 		expectedServices := []Service{
-			{ID: 1, Name: "Service 1", URL: "http://s1.com", CheckInterval: 60, CreatedAt: time.Now()},
-			{ID: 2, Name: "Service 2", URL: "http://s2.com", CheckInterval: 120, CreatedAt: time.Now()},
+			{ID: 1, Name: "Service 1", URL: "http://s1.com", CheckInterval: 60},
+			{ID: 2, Name: "Service 2", URL: "http://s2.com", CheckInterval: 120},
 		}
 		mockRepo.On("ListServices", mock.Anything).Return(expectedServices, nil)
 

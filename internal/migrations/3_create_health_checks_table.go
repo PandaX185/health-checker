@@ -12,6 +12,7 @@ func CreateHealthChecksTable(db *pgxpool.Pool) error {
 		id SERIAL PRIMARY KEY,
 		service_id INTEGER NOT NULL,
 		status VARCHAR(50) NOT NULL,
+		latency INTEGER NOT NULL DEFAULT 0,
 		created_at TIMESTAMP WITH TIME ZONE DEFAULT clock_timestamp(),
 		FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
 	);

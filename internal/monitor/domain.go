@@ -21,5 +21,6 @@ type HealthCheck struct {
 	ID        int       `json:"id" db:"id"`
 	ServiceID int       `json:"service_id" db:"service_id"`
 	Status    string    `json:"status" db:"status"`
+	Latency   int       `json:"latency" db:"latency"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }

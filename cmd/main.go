@@ -20,7 +20,8 @@ import (
 	"health-checker/internal/monitor"
 	"log"
 	"os"
-	"time"
+	"os/signal"
+	"syscall"
 
 	_ "health-checker/docs"
 
@@ -52,10 +53,7 @@ func main() {
 		log.Fatal("Database migration failed", zap.Error(err))
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := database.Rdb.Ping(ctx).Err(); err != nil {
+	if err := database.RdbInstance.Ping(context.Background()).Err(); err != nil {
 		log.Fatal("Failed to connect to Redis", zap.Error(err))
 	}
 
@@ -72,6 +70,17 @@ func main() {
 	v1 := srv.Group("/api/v1")
 	authHandler.RegisterRoutes(v1.Group("/auth"))
 	monitorHandler.RegisterRoutes(v1.Group("/services"))
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer cancel()
+
+	scheduler := monitor.NewScheduler(database.RdbInstance, monitorRepo, 5, log)
+	go scheduler.Start(ctx)
+	log.Info("Scheduler started")
+
+	worker := monitor.NewWorker(database.RdbInstance, monitorRepo, log)
+	go worker.Run(ctx)
+	log.Info("Worker started")
 
 	port := os.Getenv("PORT")
 	if port == "" {
