@@ -20,6 +20,7 @@ import (
 	"health-checker/internal/monitor"
 	"log"
 	"os"
+	"time"
 
 	_ "health-checker/docs"
 
@@ -49,6 +50,13 @@ func main() {
 
 	if err := migrations.Migrate(dbPool); err != nil {
 		log.Fatal("Database migration failed", zap.Error(err))
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := database.Rdb.Ping(ctx).Err(); err != nil {
+		log.Fatal("Failed to connect to Redis", zap.Error(err))
 	}
 
 	monitorRepo := monitor.NewRepository(dbPool)

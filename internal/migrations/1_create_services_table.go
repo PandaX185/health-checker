@@ -13,6 +13,7 @@ func CreateServicesTable(db *pgxpool.Pool) error {
 		name VARCHAR(255) NOT NULL,
 		url VARCHAR(255) NOT NULL,
 		check_interval INT NOT NULL,
+		next_run_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
 		created_at TIMESTAMP WITH TIME ZONE DEFAULT clock_timestamp()
 	);
 	`

@@ -29,6 +29,21 @@ func (m *MockRepository) ListServices(ctx context.Context) ([]Service, error) {
 	return args.Get(0).([]Service), args.Error(1)
 }
 
+func (m *MockRepository) CreateHealthCheck(ctx context.Context, check HealthCheck) error {
+	args := m.Called(ctx, check)
+	return args.Error(0)
+}
+
+func (m *MockRepository) ListDueServices(ctx context.Context) ([]Service, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]Service), args.Error(1)
+}
+
+func (m *MockRepository) UpdateNextRunAt(ctx context.Context, serviceID int, nextRunAt time.Time) error {
+	args := m.Called(ctx, serviceID, nextRunAt)
+	return args.Error(0)
+}
+
 func setupRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return gin.Default()
