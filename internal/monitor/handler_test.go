@@ -174,3 +174,116 @@ func TestListServices(t *testing.T) {
 		mockRepo.AssertExpectations(t)
 	})
 }
+
+func TestGetHealthChecks(t *testing.T) {
+	t.Run("Success_WithDefaults", func(t *testing.T) {
+		mockRepo := new(MockRepository)
+		service := NewService(mockRepo, zap.L())
+		hub := NewWsHub(zap.L())
+		handler := NewHandler(service, hub)
+
+		expectedChecks := []HealthCheck{
+			{ID: 1, ServiceID: 1, Status: "UP", Latency: 100},
+		}
+		mockRepo.On("GetHealthChecksByServiceID", mock.Anything, 1, 1, 10).Return(expectedChecks, nil)
+
+		r := setupRouter()
+		r.GET("/services/:serviceId/health-checks", handler.GetHealthChecks)
+
+		req, _ := http.NewRequest("GET", "/services/1/health-checks", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("Success_WithParams", func(t *testing.T) {
+		mockRepo := new(MockRepository)
+		service := NewService(mockRepo, zap.L())
+		hub := NewWsHub(zap.L())
+		handler := NewHandler(service, hub)
+
+		expectedChecks := []HealthCheck{
+			{ID: 1, ServiceID: 1, Status: "UP", Latency: 100},
+		}
+		mockRepo.On("GetHealthChecksByServiceID", mock.Anything, 1, 2, 20).Return(expectedChecks, nil)
+
+		r := setupRouter()
+		r.GET("/services/:serviceId/health-checks", handler.GetHealthChecks)
+
+		req, _ := http.NewRequest("GET", "/services/1/health-checks?page=2&limit=20", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("InvalidServiceID", func(t *testing.T) {
+		mockRepo := new(MockRepository)
+		service := NewService(mockRepo, zap.L())
+		hub := NewWsHub(zap.L())
+		handler := NewHandler(service, hub)
+
+		r := setupRouter()
+		r.GET("/services/:serviceId/health-checks", handler.GetHealthChecks)
+
+		req, _ := http.NewRequest("GET", "/services/invalid/health-checks", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("InvalidPage", func(t *testing.T) {
+		mockRepo := new(MockRepository)
+		service := NewService(mockRepo, zap.L())
+		hub := NewWsHub(zap.L())
+		handler := NewHandler(service, hub)
+
+		r := setupRouter()
+		r.GET("/services/:serviceId/health-checks", handler.GetHealthChecks)
+
+		req, _ := http.NewRequest("GET", "/services/1/health-checks?page=invalid", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("InvalidLimit", func(t *testing.T) {
+		mockRepo := new(MockRepository)
+		service := NewService(mockRepo, zap.L())
+		hub := NewWsHub(zap.L())
+		handler := NewHandler(service, hub)
+
+		r := setupRouter()
+		r.GET("/services/:serviceId/health-checks", handler.GetHealthChecks)
+
+		req, _ := http.NewRequest("GET", "/services/1/health-checks?limit=invalid", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("InternalServerError", func(t *testing.T) {
+		mockRepo := new(MockRepository)
+		service := NewService(mockRepo, zap.L())
+		hub := NewWsHub(zap.L())
+		handler := NewHandler(service, hub)
+
+		mockRepo.On("GetHealthChecksByServiceID", mock.Anything, 1, 1, 10).Return([]HealthCheck{}, errors.New("db error"))
+
+		r := setupRouter()
+		r.GET("/services/:serviceId/health-checks", handler.GetHealthChecks)
+
+		req, _ := http.NewRequest("GET", "/services/1/health-checks", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		mockRepo.AssertExpectations(t)
+	})
+}

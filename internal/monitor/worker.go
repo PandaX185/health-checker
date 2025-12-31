@@ -79,7 +79,9 @@ func (w *Worker) Run(ctx context.Context) {
 }
 
 func (w *Worker) ensureConsumerGroup(ctx context.Context) {
-	err := w.rdb.XGroupCreateMkStream(ctx, w.stream, w.group, "0").Err()
+	// Use "$" to start from the end of the stream (only new messages)
+	// Or use "0" to read from the beginning
+	err := w.rdb.XGroupCreateMkStream(ctx, w.stream, w.group, "$").Err()
 	if err != nil && !strings.Contains(err.Error(), "BUSYGROUP") {
 		w.log.Fatal("failed to create consumer group", zap.Error(err))
 	}
