@@ -26,6 +26,7 @@ import (
 
 	_ "health-checker/docs"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
@@ -43,9 +44,23 @@ func main() {
 	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelTimeout()
 
-	dbPool, err := database.New(timeoutCtx, os.Getenv("DATABASE_URL"), log.Named("Database"))
+
+	var dbPool *pgxpool.Pool
+	var err error
+	maxRetries := 5
+	for i := 0; i < maxRetries; i++ {
+		dbPool, err = database.New(timeoutCtx, os.Getenv("DATABASE_URL"), log.Named("Database"))
+		if err == nil {
+			break
+		}
+		if i < maxRetries-1 {
+			waitTime := time.Duration(i+1) * time.Second
+			log.Warn("Database connection failed, retrying...", zap.Error(err), zap.Duration("wait", waitTime))
+			time.Sleep(waitTime)
+		}
+	}
 	if err != nil {
-		log.Fatal("Failed to connect to database", zap.Error(err))
+		log.Fatal("Failed to connect to database after retries", zap.Error(err))
 	}
 	defer database.Close()
 
@@ -55,6 +70,19 @@ func main() {
 
 	if err := migrations.Migrate(dbPool); err != nil {
 		log.Fatal("Database migration failed", zap.Error(err))
+	}
+
+	for i := 0; i < maxRetries; i++ {
+		if err := database.RdbInstance.Ping(context.Background()).Err(); err == nil {
+			break
+		}
+		if i < maxRetries-1 {
+			waitTime := time.Duration(i+1) * time.Second
+			log.Warn("Redis connection failed, retrying...", zap.Error(err), zap.Duration("wait", waitTime))
+			time.Sleep(waitTime)
+		} else {
+			log.Fatal("Failed to connect to Redis after retries", zap.Error(err))
+		}
 	}
 
 	// Initialize event bus and hub
