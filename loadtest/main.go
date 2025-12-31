@@ -23,6 +23,7 @@ func main() {
 	numServices := flag.Int("services", 1000, "Number of services to register")
 	concurrency := flag.Int("concurrency", 20, "Number of concurrent workers")
 	mockPort := flag.Int("mock-port", 9090, "Port for the mock service to listen on")
+	durationFlag := flag.Int("duration", 30, "Duration in seconds to wait and observe health checks")
 	flag.Parse()
 
 	// 1. Start Mock Server
@@ -91,8 +92,8 @@ func main() {
 	}
 
 	// 3. Wait and observe (Optional)
-	fmt.Println("\nWaiting for 30 seconds to receive health checks from the system...")
-	time.Sleep(30 * time.Second)
+	fmt.Printf("\nWaiting for %d seconds to receive health checks from the system...\n", *durationFlag)
+	time.Sleep(time.Duration(*durationFlag) * time.Second)
 	fmt.Println("Load test finished.")
 }
 
