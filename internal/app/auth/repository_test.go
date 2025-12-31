@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -25,9 +26,12 @@ func TestRepository_Integration(t *testing.T) {
 
 	repo := NewRepository(pool)
 
+	// Use unique username to avoid conflicts between test runs
+	uniqueUsername := fmt.Sprintf("testuser_%d", time.Now().UnixNano())
+
 	t.Run("Create", func(t *testing.T) {
 		user := User{
-			Username:  "testuser",
+			Username:  uniqueUsername,
 			Password:  "hashedpassword",
 			CreatedAt: time.Now(),
 		}
@@ -37,9 +41,9 @@ func TestRepository_Integration(t *testing.T) {
 	})
 
 	t.Run("GetUserByUsername", func(t *testing.T) {
-		user, err := repo.GetUserByUsername(ctx, "testuser")
+		user, err := repo.GetUserByUsername(ctx, uniqueUsername)
 		assert.NoError(t, err)
-		assert.Equal(t, "testuser", user.Username)
+		assert.Equal(t, uniqueUsername, user.Username)
 		assert.Equal(t, "hashedpassword", user.Password)
 		assert.NotZero(t, user.ID)
 	})
