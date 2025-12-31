@@ -12,6 +12,7 @@ type Repository interface {
 	ListServices(ctx context.Context) ([]Service, error)
 	ClaimDueServices(ctx context.Context) ([]Service, error)
 	CreateHealthCheck(ctx context.Context, check HealthCheck) error
+	GetHealthChecksByServiceID(ctx context.Context, serviceID, page, limit int) ([]HealthCheck, error)
 }
 
 type PostgresRepository struct {
@@ -101,4 +102,31 @@ func (r *PostgresRepository) CreateHealthCheck(ctx context.Context, check Health
 	`
 	_, err := r.db.Exec(ctx, query, check.ServiceID, check.Status, check.Latency)
 	return err
+}
+
+func (r *PostgresRepository) GetHealthChecksByServiceID(ctx context.Context, serviceID, page, limit int) ([]HealthCheck, error) {
+	query := `
+		SELECT id, service_id, status, latency, created_at
+		FROM health_checks
+		WHERE service_id = $1
+		ORDER BY created_at DESC
+		OFFSET $2 LIMIT $3
+	`
+	rows, err := r.db.Query(ctx, query, serviceID, (page-1)*limit, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var checks []HealthCheck
+	for rows.Next() {
+		var check HealthCheck
+		err := rows.Scan(&check.ID, &check.ServiceID, &check.Status, &check.Latency, &check.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		checks = append(checks, check)
+	}
+
+	return checks, nil
 }

@@ -33,3 +33,7 @@ func (s *MonitoringService) ListServices(ctx context.Context) ([]Service, error)
 func (s *MonitoringService) ClaimDueServices(ctx context.Context) ([]Service, error) {
 	return s.repo.ClaimDueServices(ctx)
 }
+
+func (s *MonitoringService) GetHealthChecksByServiceID(ctx context.Context, serviceID, page, limit int) ([]HealthCheck, error) {
+	return s.repo.GetHealthChecksByServiceID(ctx, serviceID, page, limit)
+}

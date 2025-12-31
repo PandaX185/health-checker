@@ -39,6 +39,11 @@ func (m *MockRepository) ClaimDueServices(ctx context.Context) ([]Service, error
 	return args.Get(0).([]Service), args.Error(1)
 }
 
+func (m *MockRepository) GetHealthChecksByServiceID(ctx context.Context, serviceID, page, limit int) ([]HealthCheck, error) {
+	args := m.Called(ctx, serviceID, page, limit)
+	return args.Get(0).([]HealthCheck), args.Error(1)
+}
+
 func setupRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return gin.Default()

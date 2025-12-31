@@ -3,6 +3,7 @@ package monitor
 import (
 	"health-checker/internal/middleware"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,6 +20,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.Use(middleware.AuthMiddleware())
 	rg.POST("", h.RegisterService)
 	rg.GET("", h.ListServices)
+	rg.GET("/:serviceId/health-checks", h.GetHealthChecks)
 }
 
 // RegisterService godoc
@@ -67,4 +69,60 @@ func (h *Handler) ListServices(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, services)
+}
+
+// GetHealthChecks godoc
+//
+//	 @Security BearerAuth
+//		@Summary		Get health checks for a service
+//		@Description	Retrieve health check records for a specific service by its ID
+//		@Tags			services
+//		@Produce		json
+//		@Param			serviceId	path		int	true	"Service ID"
+//		@Param			page		query		int	false	"Page number"	default(1)
+//		@Param			limit		query		int	false	"Number of records per page"	default(10)
+//		@Success		200			{array}		HealthCheck	"List of health checks"
+//		@Failure		400			{object}	map[string]string	"Bad request"
+//		@Failure		500			{object}	map[string]string	"Internal server error"
+//		@Router			/services/{serviceId}/health-checks [get]
+func (h *Handler) GetHealthChecks(ctx *gin.Context) {
+	serviceID, ok := ctx.Params.Get("serviceId")
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid serviceId"})
+		return
+	}
+
+	page, ok := ctx.GetQuery("page")
+	if !ok {
+		page = "1"
+	}
+
+	limit, ok := ctx.GetQuery("limit")
+	if !ok {
+		limit = "10"
+	}
+
+	serviceIDInt, err := strconv.Atoi(serviceID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "serviceId must be an integer"})
+		return
+	}
+	pageInt, err := strconv.Atoi(page)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "page must be an integer"})
+		return
+	}
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "limit must be an integer"})
+		return
+	}
+
+	checks, err := h.service.GetHealthChecksByServiceID(ctx.Request.Context(), serviceIDInt, pageInt, limitInt)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, checks)
 }
