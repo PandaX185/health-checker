@@ -16,7 +16,7 @@ func TestNewWsClient(t *testing.T) {
 	conn := &websocket.Conn{}
 	hub := &WsHub{}
 
-	client := NewWsClient(conn, hub)
+	client := NewWsClient(conn, hub, zap.NewNop())
 
 	assert.NotNil(t, client)
 	assert.Equal(t, conn, client.conn)
@@ -40,7 +40,7 @@ func TestWsClient_ReadPump(t *testing.T) {
 	// ReadPump is an infinite loop that requires a WebSocket connection
 	// We can only test that the function exists and the client is properly initialized
 	hub := NewWsHub(zap.NewNop())
-	client := NewWsClient(nil, hub)
+	client := NewWsClient(nil, hub, zap.NewNop())
 
 	assert.NotNil(t, client)
 	assert.NotNil(t, client.ReadPump)
@@ -50,7 +50,7 @@ func TestWsClient_ReadPump(t *testing.T) {
 func TestWsClient_WritePump(t *testing.T) {
 	// WritePump is an infinite loop that requires a WebSocket connection
 	hub := NewWsHub(zap.NewNop())
-	client := NewWsClient(nil, hub)
+	client := NewWsClient(nil, hub, zap.NewNop())
 
 	assert.NotNil(t, client)
 	assert.NotNil(t, client.WritePump)
@@ -66,7 +66,7 @@ func TestWsClient_Integration(t *testing.T) {
 
 	// Setup Server
 	server := httptest.NewServer(websocket.Handler(func(ws *websocket.Conn) {
-		client := NewWsClient(ws, hub)
+		client := NewWsClient(ws, hub, zap.NewNop())
 		hub.register <- client
 		go client.WritePump()
 		client.ReadPump()

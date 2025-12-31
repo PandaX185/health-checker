@@ -88,7 +88,7 @@ func TestNew_Singleton(t *testing.T) {
 	logger := zap.NewNop()
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://healthcheck:healthcheck@localhost:5432/healthcheck?sslmode=disable"
+		dbURL = "postgres://postgres:root@localhost:5432/health_checker?sslmode=disable"
 	}
 
 	// Call New multiple times

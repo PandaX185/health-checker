@@ -44,7 +44,6 @@ func main() {
 	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelTimeout()
 
-
 	var dbPool *pgxpool.Pool
 	var err error
 	maxRetries := 5
@@ -106,11 +105,11 @@ func main() {
 
 	monitorRepo := monitor.NewRepository(dbPool)
 	monitorService := monitor.NewService(monitorRepo, log.Named("Monitoring service"))
-	monitorHandler := monitor.NewHandler(monitorService, hub)
+	monitorHandler := monitor.NewHandler(monitorService, hub, log.Named("MonitorHandler"))
 
 	userRepo := auth.NewRepository(dbPool)
 	userService := auth.NewService(userRepo, log.Named("User service"))
-	authHandler := auth.NewHandler(userService)
+	authHandler := auth.NewHandler(userService, log.Named("AuthHandler"))
 
 	srv := app.NewServer(log)
 

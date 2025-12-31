@@ -15,7 +15,7 @@ func SetupTestDatabase(t *testing.T) {
 
 	dbURL := os.Getenv("TEST_DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://healthcheck:healthcheck@localhost:5432/healthcheck?sslmode=disable"
+		dbURL = "postgres://postgres:root@localhost:5432/health_checker?sslmode=disable"
 	}
 
 	// Connect to test database

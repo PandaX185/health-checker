@@ -4,20 +4,23 @@ import (
 	"io"
 	"time"
 
+	"go.uber.org/zap"
 	"golang.org/x/net/websocket"
 )
 
 type WsClient struct {
-	conn *websocket.Conn
-	send chan []byte
-	hub  *WsHub
+	conn   *websocket.Conn
+	send   chan []byte
+	hub    *WsHub
+	logger *zap.Logger
 }
 
-func NewWsClient(conn *websocket.Conn, hub *WsHub) *WsClient {
+func NewWsClient(conn *websocket.Conn, hub *WsHub, logger *zap.Logger) *WsClient {
 	return &WsClient{
-		conn: conn,
-		send: make(chan []byte, 256),
-		hub:  hub,
+		conn:   conn,
+		send:   make(chan []byte, 256),
+		hub:    hub,
+		logger: logger,
 	}
 }
 
@@ -32,7 +35,7 @@ func (c *WsClient) ReadPump() {
 		err := websocket.Message.Receive(c.conn, &msg)
 		if err != nil {
 			if err != io.EOF {
-				break
+				c.logger.Error("websocket read error", zap.Error(err))
 			}
 			break
 		}
@@ -50,13 +53,16 @@ func (c *WsClient) WritePump() {
 		select {
 		case message, ok := <-c.send:
 			if !ok {
+				c.conn.WriteClose(500)
 				return
 			}
 			if err := websocket.Message.Send(c.conn, string(message)); err != nil {
+				c.logger.Error("websocket write error", zap.Error(err))
 				return
 			}
 		case <-ticker.C:
 			if err := websocket.Message.Send(c.conn, "ping"); err != nil {
+				c.logger.Error("websocket ping error", zap.Error(err))
 				return
 			}
 		}

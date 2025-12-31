@@ -58,6 +58,9 @@ func TestScheduler_Enqueue(t *testing.T) {
 
 		ctx := context.Background()
 
+		// Clean up stream before test
+		rdb.Del(ctx, HealthCheckStream)
+
 		// Try to enqueue - may fail if Redis not available, but test structure is valid
 		err := scheduler.Enqueue(ctx, service)
 

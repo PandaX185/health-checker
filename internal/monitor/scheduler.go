@@ -16,6 +16,7 @@ type Scheduler struct {
 	log          *zap.Logger
 	ticker       *time.Ticker
 	tickInterval int32
+	stream       string
 }
 
 func NewScheduler(rdb *redis.Client, repo Repository, tickInterval int32, logger *zap.Logger) *Scheduler {
@@ -25,6 +26,7 @@ func NewScheduler(rdb *redis.Client, repo Repository, tickInterval int32, logger
 		log:          logger,
 		tickInterval: tickInterval,
 		ticker:       time.NewTicker(time.Duration(tickInterval) * time.Second),
+		stream:       HealthCheckStream,
 	}
 }
 
@@ -60,7 +62,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 
 func (s *Scheduler) Enqueue(ctx context.Context, service Service) error {
 	if err := s.rdb.XAdd(ctx, &redis.XAddArgs{
-		Stream: HealthCheckStream,
+		Stream: s.stream,
 		Values: map[string]interface{}{
 			"service_id": service.ID,
 			"url":        service.URL,

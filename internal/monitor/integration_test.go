@@ -34,15 +34,21 @@ func TestIntegration_SchedulerToWorkerFlow(t *testing.T) {
 	require.NoError(t, err)
 	defer pool.Close()
 
+	// Clean up database
+	_, err = pool.Exec(ctx, "TRUNCATE TABLE health_checks, services, users RESTART IDENTITY CASCADE")
+	require.NoError(t, err)
+
 	// Setup Redis
 	redisURL := getTestRedisURL()
 	rdb := redis.NewClient(&redis.Options{Addr: redisURL})
 	defer rdb.Close()
 
+	streamName := "health_checks_test_" + t.Name()
+
 	// Clean up Redis: delete stream and consumer group completely
-	rdb.Del(ctx, HealthCheckStream)
+	rdb.Del(ctx, streamName)
 	// XGroupDestroy will fail if group doesn't exist, that's ok
-	rdb.XGroupDestroy(ctx, HealthCheckStream, HealthCheckGroup)
+	rdb.XGroupDestroy(ctx, streamName, HealthCheckGroup)
 
 	// Setup logger
 	logger := zap.NewNop()
@@ -80,9 +86,11 @@ func TestIntegration_SchedulerToWorkerFlow(t *testing.T) {
 
 	// Setup scheduler
 	scheduler := NewScheduler(rdb, repo, 5, logger)
+	scheduler.stream = streamName
 
 	// Setup worker and ensure consumer group exists (created at "$" to read new messages)
 	worker := NewWorker(rdb, repo, logger, eventBus)
+	worker.stream = streamName
 	worker.ensureConsumerGroup(ctx)
 
 	// NOW Enqueue the service (after consumer group is created at "$")
@@ -90,7 +98,7 @@ func TestIntegration_SchedulerToWorkerFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify message was added to stream
-	streamLen, err := rdb.XLen(ctx, HealthCheckStream).Result()
+	streamLen, err := rdb.XLen(ctx, streamName).Result()
 	require.NoError(t, err)
 	t.Logf("Stream length after enqueue: %d", streamLen)
 	require.Greater(t, streamLen, int64(0), "Stream should have at least one message")
@@ -99,7 +107,7 @@ func TestIntegration_SchedulerToWorkerFlow(t *testing.T) {
 	// Use ">" to read new undelivered messages
 	msgs, err := worker.rdb.XReadGroup(ctx, &redis.XReadGroupArgs{
 		Group:    HealthCheckGroup,
-		Streams:  []string{HealthCheckStream, ">"},
+		Streams:  []string{streamName, ">"},
 		Consumer: "test_consumer",
 		Count:    1,
 		Block:    5 * time.Second,
@@ -138,6 +146,10 @@ func TestIntegration_StatusChangeEvent(t *testing.T) {
 	pool, err := pgxpool.New(ctx, dbURL)
 	require.NoError(t, err)
 	defer pool.Close()
+
+	// Clean up database
+	_, err = pool.Exec(ctx, "TRUNCATE TABLE health_checks, services, users RESTART IDENTITY CASCADE")
+	require.NoError(t, err)
 
 	// Setup Redis
 	redisURL := getTestRedisURL()
@@ -248,6 +260,10 @@ func TestIntegration_RepositoryOperations(t *testing.T) {
 	pool, err := pgxpool.New(ctx, dbURL)
 	require.NoError(t, err)
 	defer pool.Close()
+
+	// Clean up database
+	_, err = pool.Exec(ctx, "TRUNCATE TABLE health_checks, services, users RESTART IDENTITY CASCADE")
+	require.NoError(t, err)
 
 	repo := NewRepository(pool)
 
@@ -373,7 +389,7 @@ func TestIntegration_RedisStreamOperations(t *testing.T) {
 func getTestDatabaseURL() string {
 	dbURL := os.Getenv("TEST_DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://healthcheck:healthcheck@localhost:5432/healthcheck?sslmode=disable"
+		dbURL = "postgres://postgres:root@localhost:5432/health_checker?sslmode=disable"
 	}
 	return dbURL
 }

@@ -19,7 +19,7 @@ func TestRepository_Integration(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup database connection
-	dbURL := "postgres://healthcheck:healthcheck@localhost:5432/healthcheck?sslmode=disable"
+	dbURL := "postgres://postgres:root@localhost:5432/health_checker?sslmode=disable"
 	pool, err := pgxpool.New(ctx, dbURL)
 	require.NoError(t, err)
 	defer pool.Close()

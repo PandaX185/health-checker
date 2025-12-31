@@ -9,18 +9,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 	"golang.org/x/net/websocket"
 )
 
 type Handler struct {
 	service *MonitoringService
 	hub     *WsHub
+	logger  *zap.Logger
 }
 
-func NewHandler(service *MonitoringService, hub *WsHub) *Handler {
+func NewHandler(service *MonitoringService, hub *WsHub, logger *zap.Logger) *Handler {
 	return &Handler{
 		service: service,
 		hub:     hub,
+		logger:  logger,
 	}
 }
 
@@ -47,11 +50,13 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 func (h *Handler) RegisterService(ctx *gin.Context) {
 	var body RegisterServiceDTO
 	if err := ctx.ShouldBindJSON(&body); err != nil {
+		h.logger.Error("failed to bind json", zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	if err := h.service.Register(ctx.Request.Context(), body); err != nil {
+		h.logger.Error("failed to register service", zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -72,6 +77,7 @@ func (h *Handler) RegisterService(ctx *gin.Context) {
 func (h *Handler) ListServices(ctx *gin.Context) {
 	services, err := h.service.ListServices(ctx.Request.Context())
 	if err != nil {
+		h.logger.Error("failed to list services", zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -96,6 +102,7 @@ func (h *Handler) ListServices(ctx *gin.Context) {
 func (h *Handler) GetHealthChecks(ctx *gin.Context) {
 	serviceID, ok := ctx.Params.Get("serviceId")
 	if !ok {
+		h.logger.Error("invalid serviceId")
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid serviceId"})
 		return
 	}
@@ -112,22 +119,26 @@ func (h *Handler) GetHealthChecks(ctx *gin.Context) {
 
 	serviceIDInt, err := strconv.Atoi(serviceID)
 	if err != nil {
+		h.logger.Error("serviceId must be an integer", zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "serviceId must be an integer"})
 		return
 	}
 	pageInt, err := strconv.Atoi(page)
 	if err != nil {
+		h.logger.Error("page must be an integer", zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "page must be an integer"})
 		return
 	}
 	limitInt, err := strconv.Atoi(limit)
 	if err != nil {
+		h.logger.Error("limit must be an integer", zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "limit must be an integer"})
 		return
 	}
 
 	checks, err := h.service.GetHealthChecksByServiceID(ctx.Request.Context(), serviceIDInt, pageInt, limitInt)
 	if err != nil {
+		h.logger.Error("failed to get health checks", zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -140,6 +151,7 @@ func (h *Handler) HandleWebSocketGin(c *gin.Context) {
 	token := strings.TrimPrefix(authHeader, "Bearer ")
 
 	if token == "" {
+		h.logger.Error("Unauthorized - no token")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized - no token"})
 		return
 	}
@@ -149,6 +161,7 @@ func (h *Handler) HandleWebSocketGin(c *gin.Context) {
 	})
 
 	if err != nil || !parsedToken.Valid {
+		h.logger.Error("Invalid token", zap.Error(err))
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token", "details": err.Error()})
 		return
 	}
@@ -166,7 +179,7 @@ func (h *Handler) HandleWebSocketGin(c *gin.Context) {
 //		@Failure		400	{object}	map[string]string	"Bad request"
 //		@Router			/services/ws [get]
 func (h *Handler) HandleWebSocket(conn *websocket.Conn) {
-	client := NewWsClient(conn, h.hub)
+	client := NewWsClient(conn, h.hub, h.logger)
 	h.hub.register <- client
 
 	go client.WritePump()

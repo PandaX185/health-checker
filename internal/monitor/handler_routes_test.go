@@ -31,7 +31,7 @@ func TestHandleWebSocketGin_NoToken(t *testing.T) {
 	// Create minimal handler for testing
 	service := &MonitoringService{}
 	hub := NewWsHub(zap.NewNop())
-	handler := NewHandler(service, hub)
+	handler := NewHandler(service, hub, zap.NewNop())
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -45,7 +45,7 @@ func TestHandleWebSocketGin_NoToken(t *testing.T) {
 func TestHandleWebSocketGin_InvalidToken(t *testing.T) {
 	service := &MonitoringService{}
 	hub := NewWsHub(zap.NewNop())
-	handler := NewHandler(service, hub)
+	handler := NewHandler(service, hub, zap.NewNop())
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -62,7 +62,7 @@ func TestHandleWebSocket(t *testing.T) {
 	// For unit testing, we can verify the function exists
 	service := &MonitoringService{}
 	hub := NewWsHub(zap.NewNop())
-	handler := NewHandler(service, hub)
+	handler := NewHandler(service, hub, zap.NewNop())
 	assert.NotNil(t, handler)
 	assert.NotNil(t, handler.HandleWebSocket)
 }

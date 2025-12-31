@@ -62,7 +62,7 @@ func TestRegisterService(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
 		hub := NewWsHub(zap.L())
-		handler := NewHandler(service, hub)
+		handler := NewHandler(service, hub, zap.NewNop())
 
 		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("monitor.Service")).Return(nil)
 
@@ -87,7 +87,7 @@ func TestRegisterService(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
 		hub := NewWsHub(zap.L())
-		handler := NewHandler(service, hub)
+		handler := NewHandler(service, hub, zap.NewNop())
 
 		r := setupRouter()
 		r.POST("/services", handler.RegisterService)
@@ -103,7 +103,7 @@ func TestRegisterService(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
 		hub := NewWsHub(zap.L())
-		handler := NewHandler(service, hub)
+		handler := NewHandler(service, hub, zap.NewNop())
 
 		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("monitor.Service")).Return(errors.New("db error"))
 
@@ -130,7 +130,7 @@ func TestListServices(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
 		hub := NewWsHub(zap.L())
-		handler := NewHandler(service, hub)
+		handler := NewHandler(service, hub, zap.NewNop())
 
 		expectedServices := []Service{
 			{ID: 1, Name: "Service 1", URL: "http://s1.com", CheckInterval: 60},
@@ -159,7 +159,7 @@ func TestListServices(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
 		hub := NewWsHub(zap.L())
-		handler := NewHandler(service, hub)
+		handler := NewHandler(service, hub, zap.NewNop())
 
 		mockRepo.On("ListServices", mock.Anything).Return([]Service{}, errors.New("db error"))
 
@@ -180,7 +180,7 @@ func TestGetHealthChecks(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
 		hub := NewWsHub(zap.L())
-		handler := NewHandler(service, hub)
+		handler := NewHandler(service, hub, zap.NewNop())
 
 		expectedChecks := []HealthCheck{
 			{ID: 1, ServiceID: 1, Status: "UP", Latency: 100},
@@ -202,7 +202,7 @@ func TestGetHealthChecks(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
 		hub := NewWsHub(zap.L())
-		handler := NewHandler(service, hub)
+		handler := NewHandler(service, hub, zap.NewNop())
 
 		expectedChecks := []HealthCheck{
 			{ID: 1, ServiceID: 1, Status: "UP", Latency: 100},
@@ -224,7 +224,7 @@ func TestGetHealthChecks(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
 		hub := NewWsHub(zap.L())
-		handler := NewHandler(service, hub)
+		handler := NewHandler(service, hub, zap.NewNop())
 
 		r := setupRouter()
 		r.GET("/services/:serviceId/health-checks", handler.GetHealthChecks)
@@ -240,7 +240,7 @@ func TestGetHealthChecks(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
 		hub := NewWsHub(zap.L())
-		handler := NewHandler(service, hub)
+		handler := NewHandler(service, hub, zap.NewNop())
 
 		r := setupRouter()
 		r.GET("/services/:serviceId/health-checks", handler.GetHealthChecks)
@@ -256,7 +256,7 @@ func TestGetHealthChecks(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
 		hub := NewWsHub(zap.L())
-		handler := NewHandler(service, hub)
+		handler := NewHandler(service, hub, zap.NewNop())
 
 		r := setupRouter()
 		r.GET("/services/:serviceId/health-checks", handler.GetHealthChecks)
@@ -272,7 +272,7 @@ func TestGetHealthChecks(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
 		hub := NewWsHub(zap.L())
-		handler := NewHandler(service, hub)
+		handler := NewHandler(service, hub, zap.NewNop())
 
 		mockRepo.On("GetHealthChecksByServiceID", mock.Anything, 1, 1, 10).Return([]HealthCheck{}, errors.New("db error"))
 

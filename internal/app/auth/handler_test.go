@@ -40,7 +40,7 @@ func TestRegisterUser(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
-		handler := NewHandler(service)
+		handler := NewHandler(service, zap.NewNop())
 
 		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("auth.User")).Return(nil)
 
@@ -63,7 +63,7 @@ func TestRegisterUser(t *testing.T) {
 	t.Run("BadRequest", func(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
-		handler := NewHandler(service)
+		handler := NewHandler(service, zap.NewNop())
 
 		r := setupRouter()
 		r.POST("/auth/register", handler.RegisterUser)
@@ -78,7 +78,7 @@ func TestRegisterUser(t *testing.T) {
 	t.Run("InternalServerError", func(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
-		handler := NewHandler(service)
+		handler := NewHandler(service, zap.NewNop())
 
 		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("auth.User")).Return(errors.New("db error"))
 
@@ -105,7 +105,7 @@ func TestLoginUser(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
-		handler := NewHandler(service)
+		handler := NewHandler(service, zap.NewNop())
 
 		password := "password123"
 		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -141,7 +141,7 @@ func TestLoginUser(t *testing.T) {
 	t.Run("InvalidCredentials", func(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
-		handler := NewHandler(service)
+		handler := NewHandler(service, zap.NewNop())
 
 		password := "password123"
 		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -172,7 +172,7 @@ func TestLoginUser(t *testing.T) {
 	t.Run("UserNotFound", func(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
-		handler := NewHandler(service)
+		handler := NewHandler(service, zap.NewNop())
 
 		mockRepo.On("GetUserByUsername", mock.Anything, "unknown").Return(User{}, errors.New("user not found"))
 
@@ -196,7 +196,7 @@ func TestLoginUser(t *testing.T) {
 func TestRegisterRoutes(t *testing.T) {
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo, zap.L())
-	handler := NewHandler(service)
+	handler := NewHandler(service, zap.NewNop())
 
 	// Setup mock expectations for register
 	mockRepo.On("Create", mock.Anything, mock.AnythingOfType("auth.User")).Return(nil).Maybe()
