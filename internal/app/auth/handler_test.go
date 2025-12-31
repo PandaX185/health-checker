@@ -164,7 +164,7 @@ func TestLoginUser(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusInternalServerError, w.Code) // Service returns error on password mismatch
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
 		mockRepo.AssertExpectations(t)
 	})
 

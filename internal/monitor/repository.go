@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -17,7 +18,7 @@ type PostgresRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewRepository(db *pgxpool.Pool) *PostgresRepository {
+func NewRepository(db *pgxpool.Pool) Repository {
 	return &PostgresRepository{db: db}
 }
 
@@ -67,11 +68,18 @@ func (r *PostgresRepository) ClaimDueServices(ctx context.Context) ([]Service, e
 		)
 		returning id, name, url, check_interval, next_run_at, created_at
 	`
-	rows, err := r.db.Query(ctx, query)
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return nil, err
 	}
+
+	rows, err := tx.Query(ctx, query)
+	if err != nil {
+		tx.Rollback(ctx)
+		return nil, err
+	}
 	defer rows.Close()
+	defer tx.Commit(ctx)
 
 	var services []Service
 	for rows.Next() {
@@ -88,9 +96,9 @@ func (r *PostgresRepository) ClaimDueServices(ctx context.Context) ([]Service, e
 
 func (r *PostgresRepository) CreateHealthCheck(ctx context.Context, check HealthCheck) error {
 	query := `
-		INSERT INTO health_checks (service_id, status)
-		VALUES ($1, $2)
+		INSERT INTO health_checks (service_id, status, latency)
+		VALUES ($1, $2, $3)
 	`
-	_, err := r.db.Exec(ctx, query, check.ServiceID, check.Status)
+	_, err := r.db.Exec(ctx, query, check.ServiceID, check.Status, check.Latency)
 	return err
 }

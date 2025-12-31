@@ -24,6 +24,7 @@ func New(env string) *zap.Logger {
 			panic(err)
 		}
 	})
+
 	return log
 }
 
