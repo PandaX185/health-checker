@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 )
 
 type MockRepository struct {
@@ -46,7 +47,7 @@ func setupRouter() *gin.Engine {
 func TestRegisterService(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 		handler := NewHandler(service)
 
 		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("monitor.Service")).Return(nil)
@@ -70,7 +71,7 @@ func TestRegisterService(t *testing.T) {
 
 	t.Run("BadRequest", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 		handler := NewHandler(service)
 
 		r := setupRouter()
@@ -85,7 +86,7 @@ func TestRegisterService(t *testing.T) {
 
 	t.Run("InternalServerError", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 		handler := NewHandler(service)
 
 		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("monitor.Service")).Return(errors.New("db error"))
@@ -111,7 +112,7 @@ func TestRegisterService(t *testing.T) {
 func TestListServices(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 		handler := NewHandler(service)
 
 		expectedServices := []Service{
@@ -139,7 +140,7 @@ func TestListServices(t *testing.T) {
 
 	t.Run("InternalServerError", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 		handler := NewHandler(service)
 
 		mockRepo.On("ListServices", mock.Anything).Return([]Service{}, errors.New("db error"))

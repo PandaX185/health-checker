@@ -1,33 +1,24 @@
 package logger
 
 import (
-	"sync"
-
 	"go.uber.org/zap"
 )
 
-var (
-	log  *zap.Logger
-	once sync.Once
-)
-
 func New(env string) *zap.Logger {
-	once.Do(func() {
-		var err error
-		if env == "production" {
-			log, err = zap.NewProduction()
-		} else {
-			log, err = zap.NewDevelopment()
-		}
+	var (
+		log *zap.Logger
+		err error
+	)
 
-		if err != nil {
-			panic(err)
-		}
-	})
+	if env == "production" {
+		log, err = zap.NewProduction()
+	} else {
+		log, err = zap.NewDevelopment()
+	}
 
-	return log
-}
+	if err != nil {
+		panic(err)
+	}
 
-func Get() *zap.Logger {
 	return log
 }

@@ -7,12 +7,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 )
 
 func TestService_Register(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 
 		dto := RegisterServiceDTO{
 			Name:          "Test Service",
@@ -33,7 +34,7 @@ func TestService_Register(t *testing.T) {
 
 	t.Run("RepoError", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 
 		dto := RegisterServiceDTO{
 			Name:          "Test Service",
@@ -52,7 +53,7 @@ func TestService_Register(t *testing.T) {
 func TestService_ListServices(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 
 		expectedServices := []Service{
 			{ID: 1, Name: "S1", URL: "u1", CheckInterval: 10},
@@ -69,7 +70,7 @@ func TestService_ListServices(t *testing.T) {
 
 	t.Run("RepoError", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 
 		mockRepo.On("ListServices", mock.Anything).Return([]Service{}, errors.New("db error"))
 

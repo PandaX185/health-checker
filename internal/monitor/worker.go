@@ -40,6 +40,7 @@ func NewWorker(rdb *redis.Client, repo Repository, logger *zap.Logger) *Worker {
 func (w *Worker) Run(ctx context.Context) {
 	w.ensureConsumerGroup(ctx)
 
+	w.log.Info("Worker started, waiting for jobs...")
 	for {
 		select {
 		case <-ctx.Done():

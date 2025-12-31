@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -38,7 +39,7 @@ func setupRouter() *gin.Engine {
 func TestRegisterUser(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 		handler := NewHandler(service)
 
 		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("auth.User")).Return(nil)
@@ -61,7 +62,7 @@ func TestRegisterUser(t *testing.T) {
 
 	t.Run("BadRequest", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 		handler := NewHandler(service)
 
 		r := setupRouter()
@@ -76,7 +77,7 @@ func TestRegisterUser(t *testing.T) {
 
 	t.Run("InternalServerError", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 		handler := NewHandler(service)
 
 		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("auth.User")).Return(errors.New("db error"))
@@ -103,7 +104,7 @@ func TestLoginUser(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 		handler := NewHandler(service)
 
 		password := "password123"
@@ -139,7 +140,7 @@ func TestLoginUser(t *testing.T) {
 
 	t.Run("InvalidCredentials", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 		handler := NewHandler(service)
 
 		password := "password123"
@@ -170,7 +171,7 @@ func TestLoginUser(t *testing.T) {
 
 	t.Run("UserNotFound", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 		handler := NewHandler(service)
 
 		mockRepo.On("GetUserByUsername", mock.Anything, "unknown").Return(User{}, errors.New("user not found"))

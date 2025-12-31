@@ -3,14 +3,17 @@ package monitor
 import (
 	"context"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type MonitoringService struct {
 	repo Repository
+	log  *zap.Logger
 }
 
-func NewService(repo Repository) *MonitoringService {
-	return &MonitoringService{repo: repo}
+func NewService(repo Repository, log *zap.Logger) *MonitoringService {
+	return &MonitoringService{repo: repo, log: log}
 }
 
 func (s *MonitoringService) Register(ctx context.Context, dto RegisterServiceDTO) error {

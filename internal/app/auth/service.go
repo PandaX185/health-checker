@@ -6,15 +6,17 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
 	repo Repository
+	log  *zap.Logger
 }
 
-func NewService(repo Repository) *UserService {
-	return &UserService{repo: repo}
+func NewService(repo Repository, log *zap.Logger) *UserService {
+	return &UserService{repo: repo, log: log}
 }
 
 func (s *UserService) RegisterUser(ctx context.Context, user RegisterUserDTO) error {

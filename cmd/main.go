@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	_ "health-checker/docs"
 
@@ -39,7 +40,10 @@ func main() {
 
 	log.Info("Starting Health Checker Application")
 
-	dbPool, err := database.New(context.Background(), os.Getenv("DATABASE_URL"), log)
+	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelTimeout()
+
+	dbPool, err := database.New(timeoutCtx, os.Getenv("DATABASE_URL"), log.Named("Database"))
 	if err != nil {
 		log.Fatal("Failed to connect to database", zap.Error(err))
 	}
@@ -53,16 +57,12 @@ func main() {
 		log.Fatal("Database migration failed", zap.Error(err))
 	}
 
-	if err := database.RdbInstance.Ping(context.Background()).Err(); err != nil {
-		log.Fatal("Failed to connect to Redis", zap.Error(err))
-	}
-
 	monitorRepo := monitor.NewRepository(dbPool)
-	monitorService := monitor.NewService(monitorRepo)
+	monitorService := monitor.NewService(monitorRepo, log.Named("Monitoring service"))
 	monitorHandler := monitor.NewHandler(monitorService)
 
 	userRepo := auth.NewRepository(dbPool)
-	userService := auth.NewService(userRepo)
+	userService := auth.NewService(userRepo, log.Named("User service"))
 	authHandler := auth.NewHandler(userService)
 
 	srv := app.NewServer(log)
@@ -74,13 +74,11 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
-	scheduler := monitor.NewScheduler(database.RdbInstance, monitorRepo, 5, log)
+	scheduler := monitor.NewScheduler(database.RdbInstance, monitorRepo, 1, log.Named("Scheduler"))
 	go scheduler.Start(ctx)
-	log.Info("Scheduler started")
 
-	worker := monitor.NewWorker(database.RdbInstance, monitorRepo, log)
+	worker := monitor.NewWorker(database.RdbInstance, monitorRepo, log.Named("Worker"))
 	go worker.Run(ctx)
-	log.Info("Worker started")
 
 	port := os.Getenv("PORT")
 	if port == "" {

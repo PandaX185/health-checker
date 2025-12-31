@@ -33,6 +33,7 @@ func New(ctx context.Context, connString string, logger *zap.Logger) (*pgxpool.P
 		}
 	})
 
+	logger.Info("Connected to PostgreSQL database")
 	return pool, err
 }
 

@@ -8,13 +8,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func TestService_RegisterUser(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 
 		dto := RegisterUserDTO{
 			Username: "testuser",
@@ -33,7 +34,7 @@ func TestService_RegisterUser(t *testing.T) {
 
 	t.Run("RepoError", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 
 		dto := RegisterUserDTO{
 			Username: "testuser",
@@ -53,7 +54,7 @@ func TestService_Login(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 
 		password := "password123"
 		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -79,7 +80,7 @@ func TestService_Login(t *testing.T) {
 
 	t.Run("UserNotFound", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 
 		mockRepo.On("GetUserByUsername", mock.Anything, "unknown").Return(User{}, errors.New("user not found"))
 
@@ -96,7 +97,7 @@ func TestService_Login(t *testing.T) {
 
 	t.Run("WrongPassword", func(t *testing.T) {
 		mockRepo := new(MockRepository)
-		service := NewService(mockRepo)
+		service := NewService(mockRepo, zap.L())
 
 		password := "password123"
 		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

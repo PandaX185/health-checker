@@ -29,6 +29,7 @@ func NewScheduler(rdb *redis.Client, repo Repository, tickInterval int32, logger
 }
 
 func (s *Scheduler) Start(ctx context.Context) {
+	s.log.Info("Scheduler started", zap.Int32("tick_interval_seconds", s.tickInterval))
 	for {
 		select {
 		case <-s.ticker.C:
