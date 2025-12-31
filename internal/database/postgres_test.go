@@ -37,7 +37,7 @@ func TestNew_Integration(t *testing.T) {
 }
 
 func TestNew_InvalidURL(t *testing.T) {
-	Reset() // Reset singleton to ensure we test initialization logic
+	Reset()       // Reset singleton to ensure we test initialization logic
 	defer Reset() // Clean up after test
 
 	ctx := context.Background()
@@ -65,7 +65,6 @@ func TestNew_ParseConfigError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, pool)
 }
-
 
 func TestGet(t *testing.T) {
 	Reset()
