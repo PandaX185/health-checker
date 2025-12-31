@@ -29,6 +29,7 @@ func New(ctx context.Context, connString string, logger *zap.Logger) (*pgxpool.P
 
 		if pingErr := pool.Ping(ctx); pingErr != nil {
 			err = pingErr
+			pool = nil // Ensure we return nil on error
 			return
 		}
 	})
@@ -45,4 +46,10 @@ func Close() {
 	if pool != nil {
 		pool.Close()
 	}
+}
+
+// Reset resets the singleton for testing purposes
+func Reset() {
+	pool = nil
+	once = sync.Once{}
 }

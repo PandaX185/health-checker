@@ -1,4 +1,4 @@
-FROM golang:1.24rc1-alpine
+FROM golang:1.23-alpine
 ENV GOTOOLCHAIN=auto
 WORKDIR /app
 COPY . .

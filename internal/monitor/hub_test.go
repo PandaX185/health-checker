@@ -231,19 +231,45 @@ func TestWsHub_MultipleClientsOneDisconnects(t *testing.T) {
 	}
 }
 
-
 func TestWsHub_Shutdown(t *testing.T) {
-hub := NewWsHub(zap.NewNop())
+	hub := NewWsHub(zap.NewNop())
 
-// Add a mock client
-client := &WsClient{
-send: make(chan []byte, 1),
+	// Add a mock client
+	client := &WsClient{
+		send: make(chan []byte, 1),
+	}
+	hub.clients[client] = true
+
+	// Call shutdown
+	hub.shutdown()
+
+	// Verify client was removed and channel closed
+	assert.Empty(t, hub.clients)
 }
-hub.clients[client] = true
 
-// Call shutdown
-hub.shutdown()
+func TestWsHub_Run_CancelContext(t *testing.T) {
+	logger := zap.NewNop()
+	hub := NewWsHub(logger)
+	ctx, cancel := context.WithCancel(context.Background())
 
-// Verify client was removed and channel closed
-assert.Empty(t, hub.clients)
+	// Start hub
+	go hub.Run(ctx)
+
+	// Register a client
+	client := &WsClient{
+		send: make(chan []byte, 1),
+		hub:  hub,
+	}
+	hub.register <- client
+	time.Sleep(50 * time.Millisecond)
+
+	// Verify client registered
+	assert.Contains(t, hub.clients, client)
+
+	// Cancel context
+	cancel()
+	time.Sleep(50 * time.Millisecond)
+
+	// Verify hub shut down (clients cleared)
+	assert.Empty(t, hub.clients)
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -443,21 +444,48 @@ func (m *MockEventBus) Subscribe(eventType string, handler EventHandler) {
 	m.Called(eventType, handler)
 }
 
-
 func TestWorker_Run(t *testing.T) {
-// This test is complex because Run() runs in an infinite loop
-// For unit testing, we can verify the function exists and basic setup
-rdb := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
-defer rdb.Close()
+	// This test is complex because Run() runs in an infinite loop
+	// For unit testing, we can verify the function exists and basic setup
+	rdb := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+	defer rdb.Close()
 
-repo := &PostgresRepository{} // mock repo
-logger := zap.NewNop()
-eventBus := NewInMemoryEventBus(logger)
+	repo := &PostgresRepository{} // mock repo
+	logger := zap.NewNop()
+	eventBus := NewInMemoryEventBus(logger)
 
-worker := NewWorker(rdb, repo, logger, eventBus)
+	worker := NewWorker(rdb, repo, logger, eventBus)
 
-// Verify worker was created properly
-assert.NotNil(t, worker)
-assert.NotNil(t, worker.Run)
-assert.Equal(t, "worker_1", worker.consumer)
+	// Verify worker was created properly
+	assert.NotNil(t, worker)
+	assert.NotNil(t, worker.Run)
+	assert.Equal(t, "worker_1", worker.consumer)
+}
+
+func TestWorker_Run_Integration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test")
+	}
+	// Setup Redis
+	rdb := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		t.Skip("Redis not available")
+	}
+	defer rdb.Close()
+
+	// Setup Worker
+	repo := new(MockRepository)
+	logger := zap.NewNop()
+	eventBus := NewInMemoryEventBus(logger)
+	worker := NewWorker(rdb, repo, logger, eventBus)
+
+	// Use a unique group/consumer to avoid conflicts
+	worker.group = "test_group_" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	worker.consumer = "test_consumer"
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	// Run should return when context is cancelled
+	worker.Run(ctx)
 }
