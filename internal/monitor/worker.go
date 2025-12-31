@@ -21,15 +21,17 @@ type Worker struct {
 	stream   string
 	group    string
 	consumer string
+	eventBus EventBus
 
 	httpClient *http.Client
 }
 
-func NewWorker(rdb *redis.Client, repo Repository, logger *zap.Logger) *Worker {
+func NewWorker(rdb *redis.Client, repo Repository, logger *zap.Logger, eventBus EventBus) *Worker {
 	return &Worker{
 		rdb:        rdb,
 		repo:       repo,
 		log:        logger,
+		eventBus:   eventBus,
 		stream:     HealthCheckStream,
 		group:      HealthCheckGroup,
 		consumer:   "worker_1",
@@ -98,6 +100,11 @@ func (w *Worker) processJob(parentCtx context.Context, service map[string]interf
 		return errors.New("failed to parse url")
 	}
 
+	previousStatus, err := w.repo.GetLatestHealthCheck(ctx, serviceID)
+	if err != nil {
+		w.log.Warn("failed to get latest health check", zap.Error(err))
+	}
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return err
@@ -121,7 +128,29 @@ func (w *Worker) processJob(parentCtx context.Context, service map[string]interf
 		Latency:   int(lat),
 	}
 
-	return w.repo.CreateHealthCheck(ctx, check)
+	if err := w.repo.CreateHealthCheck(ctx, check); err != nil {
+		return err
+	}
+
+	if previousStatus != nil && previousStatus.Status != status {
+		event := StatusChangeEvent{
+			ServiceID: serviceID,
+			OldStatus: previousStatus.Status,
+			NewStatus: status,
+			Timestamp: time.Now().Local(),
+		}
+		if err := w.eventBus.Publish(ctx, event); err != nil {
+			w.log.Error("failed to publish status change event", zap.Error(err))
+		} else {
+			w.log.Info("status change detected",
+				zap.Int("service_id", serviceID),
+				zap.String("old_status", previousStatus.Status),
+				zap.String("new_status", status),
+			)
+		}
+	}
+
+	return nil
 }
 
 func toInt(v interface{}) (int, error) {

@@ -13,6 +13,7 @@ type Repository interface {
 	ClaimDueServices(ctx context.Context) ([]Service, error)
 	CreateHealthCheck(ctx context.Context, check HealthCheck) error
 	GetHealthChecksByServiceID(ctx context.Context, serviceID, page, limit int) ([]HealthCheck, error)
+	GetLatestHealthCheck(ctx context.Context, serviceID int) (*HealthCheck, error)
 }
 
 type PostgresRepository struct {
@@ -129,4 +130,24 @@ func (r *PostgresRepository) GetHealthChecksByServiceID(ctx context.Context, ser
 	}
 
 	return checks, nil
+}
+
+func (r *PostgresRepository) GetLatestHealthCheck(ctx context.Context, serviceID int) (*HealthCheck, error) {
+	query := `
+		SELECT id, service_id, status, latency, created_at
+		FROM health_checks
+		WHERE service_id = $1
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+	var check HealthCheck
+	err := r.db.QueryRow(ctx, query, serviceID).Scan(&check.ID, &check.ServiceID, &check.Status, &check.Latency, &check.CreatedAt)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &check, nil
 }

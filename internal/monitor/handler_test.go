@@ -44,6 +44,14 @@ func (m *MockRepository) GetHealthChecksByServiceID(ctx context.Context, service
 	return args.Get(0).([]HealthCheck), args.Error(1)
 }
 
+func (m *MockRepository) GetLatestHealthCheck(ctx context.Context, serviceID int) (*HealthCheck, error) {
+	args := m.Called(ctx, serviceID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*HealthCheck), args.Error(1)
+}
+
 func setupRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return gin.Default()
@@ -53,7 +61,8 @@ func TestRegisterService(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
-		handler := NewHandler(service)
+		hub := NewWsHub(zap.L())
+		handler := NewHandler(service, hub)
 
 		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("monitor.Service")).Return(nil)
 
@@ -77,7 +86,8 @@ func TestRegisterService(t *testing.T) {
 	t.Run("BadRequest", func(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
-		handler := NewHandler(service)
+		hub := NewWsHub(zap.L())
+		handler := NewHandler(service, hub)
 
 		r := setupRouter()
 		r.POST("/services", handler.RegisterService)
@@ -92,7 +102,8 @@ func TestRegisterService(t *testing.T) {
 	t.Run("InternalServerError", func(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
-		handler := NewHandler(service)
+		hub := NewWsHub(zap.L())
+		handler := NewHandler(service, hub)
 
 		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("monitor.Service")).Return(errors.New("db error"))
 
@@ -118,7 +129,8 @@ func TestListServices(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
-		handler := NewHandler(service)
+		hub := NewWsHub(zap.L())
+		handler := NewHandler(service, hub)
 
 		expectedServices := []Service{
 			{ID: 1, Name: "Service 1", URL: "http://s1.com", CheckInterval: 60},
@@ -146,7 +158,8 @@ func TestListServices(t *testing.T) {
 	t.Run("InternalServerError", func(t *testing.T) {
 		mockRepo := new(MockRepository)
 		service := NewService(mockRepo, zap.L())
-		handler := NewHandler(service)
+		hub := NewWsHub(zap.L())
+		handler := NewHandler(service, hub)
 
 		mockRepo.On("ListServices", mock.Anything).Return([]Service{}, errors.New("db error"))
 

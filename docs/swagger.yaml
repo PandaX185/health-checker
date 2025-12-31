@@ -25,6 +25,19 @@ definitions:
     - password
     - username
     type: object
+  monitor.HealthCheck:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      latency:
+        type: integer
+      service_id:
+        type: integer
+      status:
+        type: string
+    type: object
   monitor.RegisterServiceDTO:
     properties:
       check_interval:
@@ -51,6 +64,8 @@ definitions:
       id:
         type: integer
       name:
+        type: string
+      next_run_at:
         type: string
       url:
         type: string
@@ -192,6 +207,70 @@ paths:
       security:
       - BearerAuth: []
       summary: Register a new service
+      tags:
+      - services
+  /services/{serviceId}/health-checks:
+    get:
+      description: Retrieve health check records for a specific service by its ID
+      parameters:
+      - description: Service ID
+        in: path
+        name: serviceId
+        required: true
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Number of records per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of health checks
+          schema:
+            items:
+              $ref: '#/definitions/monitor.HealthCheck'
+            type: array
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get health checks for a service
+      tags:
+      - services
+  /services/ws:
+    get:
+      description: Establish a WebSocket connection to receive real-time status updates
+      responses:
+        "101":
+          description: Switching Protocols
+          schema:
+            type: string
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Handle WebSocket connections for real-time updates
       tags:
       - services
 securityDefinitions:

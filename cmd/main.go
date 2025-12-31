@@ -57,9 +57,28 @@ func main() {
 		log.Fatal("Database migration failed", zap.Error(err))
 	}
 
+	// Initialize event bus and hub
+	eventBus := monitor.NewInMemoryEventBus(log.Named("EventBus"))
+
+	hub := monitor.NewWsHub(log.Named("Websocket Hub"))
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer cancel()
+
+	go hub.Run(ctx)
+
+	// Subscribe hub to status change events
+	eventBus.Subscribe("StatusChange", func(ctx context.Context, event monitor.Event) {
+		if statusChangeEvent, ok := event.(monitor.StatusChangeEvent); ok {
+			if err := hub.BroadcastStatusChange(statusChangeEvent); err != nil {
+				log.Error("failed to broadcast status change", zap.Error(err))
+			}
+		}
+	})
+
 	monitorRepo := monitor.NewRepository(dbPool)
 	monitorService := monitor.NewService(monitorRepo, log.Named("Monitoring service"))
-	monitorHandler := monitor.NewHandler(monitorService)
+	monitorHandler := monitor.NewHandler(monitorService, hub)
 
 	userRepo := auth.NewRepository(dbPool)
 	userService := auth.NewService(userRepo, log.Named("User service"))
@@ -69,15 +88,14 @@ func main() {
 
 	v1 := srv.Group("/api/v1")
 	authHandler.RegisterRoutes(v1.Group("/auth"))
-	monitorHandler.RegisterRoutes(v1.Group("/services"))
 
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
-	defer cancel()
+	servicesGroup := v1.Group("/services")
+	monitorHandler.RegisterRoutes(servicesGroup)
 
 	scheduler := monitor.NewScheduler(database.RdbInstance, monitorRepo, 1, log.Named("Scheduler"))
 	go scheduler.Start(ctx)
 
-	worker := monitor.NewWorker(database.RdbInstance, monitorRepo, log.Named("Worker"))
+	worker := monitor.NewWorker(database.RdbInstance, monitorRepo, log.Named("Worker"), eventBus)
 	go worker.Run(ctx)
 
 	port := os.Getenv("PORT")

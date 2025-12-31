@@ -3,24 +3,32 @@ package monitor
 import (
 	"health-checker/internal/middleware"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/net/websocket"
 )
 
 type Handler struct {
 	service *MonitoringService
+	hub     *WsHub
 }
 
-func NewHandler(service *MonitoringService) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *MonitoringService, hub *WsHub) *Handler {
+	return &Handler{
+		service: service,
+		hub:     hub,
+	}
 }
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
-	rg.Use(middleware.AuthMiddleware())
-	rg.POST("", h.RegisterService)
-	rg.GET("", h.ListServices)
-	rg.GET("/:serviceId/health-checks", h.GetHealthChecks)
+	rg.GET("/ws", h.HandleWebSocketGin)
+	rg.POST("", h.RegisterService, middleware.AuthMiddleware())
+	rg.GET("", h.ListServices, middleware.AuthMiddleware())
+	rg.GET("/:serviceId/health-checks", h.GetHealthChecks, middleware.AuthMiddleware())
 }
 
 // RegisterService godoc
@@ -125,4 +133,42 @@ func (h *Handler) GetHealthChecks(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, checks)
+}
+
+func (h *Handler) HandleWebSocketGin(c *gin.Context) {
+	authHeader := c.GetHeader("Authorization")
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+
+	if token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized - no token"})
+		return
+	}
+
+	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+
+	if err != nil || !parsedToken.Valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token", "details": err.Error()})
+		return
+	}
+
+	websocket.Handler(h.HandleWebSocket).ServeHTTP(c.Writer, c.Request)
+}
+
+// HandleWebSocket godoc
+// @Security BearerAuth
+//
+//	 @Summary		Handle WebSocket connections for real-time updates
+//		@Description	Establish a WebSocket connection to receive real-time status updates
+//		@Tags			services
+//		@Success		101	{string}	string	"Switching Protocols"
+//		@Failure		400	{object}	map[string]string	"Bad request"
+//		@Router			/services/ws [get]
+func (h *Handler) HandleWebSocket(conn *websocket.Conn) {
+	client := NewWsClient(conn, h.hub)
+	h.hub.register <- client
+
+	go client.WritePump()
+	client.ReadPump()
 }
