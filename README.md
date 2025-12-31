@@ -2,55 +2,46 @@
 
 A production-ready distributed system for monitoring external service health with real-time WebSocket updates.
 
-## 🚀 Features
+## Features
 
-- **Service Registration**: Register external services with custom check intervals
-- **Asynchronous Health Checks**: Distributed workers process checks via Redis streams
-- **Real-time Updates**: WebSocket broadcasting for status changes (UP ↔ DOWN)
-- **Historical Data**: PostgreSQL storage with append-only logs
-- **REST API**: Full CRUD operations with JWT authentication
-- **Swagger Documentation**: Interactive API documentation
-- **Docker Support**: Containerized deployment with Docker Compose
+- Service Registration: Register external services with custom check intervals
+- Asynchronous Health Checks: Distributed workers process checks via Redis streams
+- Real-time Updates: WebSocket broadcasting for status changes (UP ↔ DOWN)
+- Historical Data: PostgreSQL storage with append-only logs
+- REST API: Full CRUD operations with JWT authentication
+- Swagger Documentation: Interactive API documentation
+- Docker Support: Containerized deployment with Docker Compose
 
-## 🏗️ Architecture
+## Architecture
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Scheduler     │    │     Redis       │    │     Worker      │
-│                 │    │   Streams       │    │                 │
-│ • Claims due    │───▶│ • Message Queue │───▶│ • HTTP Checks   │
-│   services      │    │ • Job Queue     │    │ • Status Updates │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  PostgreSQL     │    │   WebSocket     │    │     Clients     │
-│                 │    │                 │    │                 │
-│ • Service Data  │    │ • Real-time     │◀───│ • Browsers      │
-│ • Health Logs   │    │   Updates       │    │ • Dashboards    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+The system consists of several components:
 
-## 🛠️ Tech Stack
+- **Scheduler**: Claims and schedules due services for health checks
+- **Redis Streams**: Message queue for distributing check jobs to workers
+- **Workers**: Background processes that perform HTTP health checks
+- **PostgreSQL**: Stores service configurations and health check results
+- **WebSocket Hub**: Broadcasts real-time status change events to connected clients
 
-- **Backend**: Go 1.24
-- **Web Framework**: Gin
-- **Database**: PostgreSQL
-- **Cache/Queue**: Redis
-- **Authentication**: JWT
-- **WebSockets**: golang.org/x/net/websocket
-- **Documentation**: Swagger/OpenAPI
-- **Logging**: Zap
-- **Testing**: Testify
+## Tech Stack
 
-## 📋 Prerequisites
+- Backend: Go 1.24
+- Web Framework: Gin
+- Database: PostgreSQL
+- Cache/Queue: Redis
+- Authentication: JWT
+- WebSockets: golang.org/x/net/websocket
+- Documentation: Swagger/OpenAPI
+- Logging: Zap
+- Testing: Testify
+
+## Prerequisites
 
 - Go 1.24+
 - Docker & Docker Compose
 - PostgreSQL (or use Docker)
 - Redis (or use Docker)
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Clone the repository
 ```bash
@@ -58,21 +49,10 @@ git clone <repository-url>
 cd health-checker
 ```
 
-### 2. Start dependencies with Docker
+### 2. Start app with Docker
 ```bash
-docker-compose up -d redis
+docker-compose up -d
 ```
-
-### 3. Set up environment variables
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
-
-### 4. Run the application
-```bash
-# Development with hot reload
-air
 
 # Or build and run
 go build -o bin/health-checker cmd/main.go
@@ -80,10 +60,10 @@ go build -o bin/health-checker cmd/main.go
 ```
 
 ### 5. Access the application
-- **API**: http://localhost:8080
-- **Swagger Docs**: http://localhost:8080/swagger/index.html
+- API: http://localhost:8080
+- Swagger Docs: http://localhost:8080/swagger/index.html
 
-## ⚙️ Configuration
+## Configuration
 
 Create a `.env` file in the project root:
 
@@ -104,7 +84,7 @@ JWT_SECRET=your_super_secret_jwt_key_here
 PORT=:8080
 ```
 
-## 📖 API Documentation
+## API Documentation
 
 ### Authentication
 
@@ -165,7 +145,7 @@ wscat -c ws://localhost:8080/api/v1/services/ws \
 }
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Unit Tests
 ```bash
@@ -192,7 +172,7 @@ wscat -c ws://localhost:8080/api/v1/services/ws \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-## 🏗️ Development
+## Development
 
 ### Project Structure
 ```
@@ -229,74 +209,3 @@ health-checker/
 2. **API Endpoints**: Add handlers in `internal/monitor/handler.go`
 3. **Business Logic**: Add services in `internal/monitor/service.go`
 4. **Real-time Events**: Publish to event bus in relevant services
-
-### Code Quality
-
-```bash
-# Format code
-go fmt ./...
-
-# Run linter
-golangci-lint run
-
-# Generate Swagger docs
-swag init -g cmd/main.go
-```
-
-## 🚀 Deployment
-
-### Docker Compose (Development)
-```bash
-# Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f health-checker
-```
-
-### Production Deployment
-
-1. **Build the application**
-```bash
-CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/main.go
-```
-
-2. **Create production Docker image**
-```dockerfile
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-COPY --from=builder /app/main .
-CMD ["./main"]
-```
-
-3. **Deploy with your preferred orchestration tool** (Kubernetes, Docker Swarm, etc.)
-
-## 📊 Monitoring & Observability
-
-- **Logs**: Structured JSON logging with Zap
-- **Health Checks**: Built-in service monitoring
-- **Metrics**: Ready for integration with Prometheus/Grafana
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Built with [Gin Web Framework](https://gin-gonic.com/)
-- Database operations with [pgx](https://github.com/jackc/pgx)
-- Redis client with [go-redis](https://github.com/go-redis/redis)
-- WebSocket support with [golang.org/x/net](https://golang.org/x/net)
-
----
-
-**Happy monitoring! 🔍**
