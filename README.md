@@ -1,6 +1,6 @@
 # Health Checker - Distributed Health Monitoring System
 
-A production-ready distributed system for monitoring external service health with real-time WebSocket updates.
+A distributed system for monitoring external service health with real-time WebSocket updates.
 
 ## Features
 
@@ -54,12 +54,13 @@ cd health-checker
 docker-compose up -d
 ```
 
-# Or build and run
+### 3. Or build and run manually
+```bash
 go build -o bin/health-checker cmd/main.go
 ./bin/health-checker
 ```
 
-### 5. Access the application
+### 4. Access the application
 - API: http://localhost:8080
 - Swagger Docs: http://localhost:8080/swagger/index.html
 
