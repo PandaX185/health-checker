@@ -192,3 +192,42 @@ func TestLoginUser(t *testing.T) {
 		mockRepo.AssertExpectations(t)
 	})
 }
+
+func TestRegisterRoutes(t *testing.T) {
+	mockRepo := new(MockRepository)
+	service := NewService(mockRepo, zap.L())
+	handler := NewHandler(service)
+
+	// Setup mock expectations for register
+	mockRepo.On("Create", mock.Anything, mock.AnythingOfType("auth.User")).Return(nil).Maybe()
+	// Setup mock expectations for login
+	mockRepo.On("GetUserByUsername", mock.Anything, mock.AnythingOfType("string")).Return(User{}, errors.New("user not found")).Maybe()
+
+	r := gin.New()
+	group := r.Group("/auth")
+	handler.RegisterRoutes(group)
+
+	// Test that routes are registered by making requests
+	dto := RegisterUserDTO{
+		Username: "testuser",
+		Password: "password123",
+	}
+	jsonValue, _ := json.Marshal(dto)
+
+	// Test register route
+	req, _ := http.NewRequest("POST", "/auth/register", bytes.NewBuffer(jsonValue))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.True(t, w.Code == http.StatusOK || w.Code == http.StatusCreated || w.Code == http.StatusBadRequest || w.Code == http.StatusInternalServerError, "Register route should be registered")
+
+	// Test login route
+	loginDto := LoginUserDTO{
+		Username: "testuser",
+		Password: "password123",
+	}
+	jsonValue, _ = json.Marshal(loginDto)
+	req, _ = http.NewRequest("POST", "/auth/login", bytes.NewBuffer(jsonValue))
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.True(t, w.Code == http.StatusOK || w.Code == http.StatusBadRequest || w.Code == http.StatusInternalServerError || w.Code == http.StatusUnauthorized, "Login route should be registered")
+}

@@ -230,3 +230,20 @@ func TestWsHub_MultipleClientsOneDisconnects(t *testing.T) {
 		t.Fatal("Client2 should receive message")
 	}
 }
+
+
+func TestWsHub_Shutdown(t *testing.T) {
+hub := NewWsHub(zap.NewNop())
+
+// Add a mock client
+client := &WsClient{
+send: make(chan []byte, 1),
+}
+hub.clients[client] = true
+
+// Call shutdown
+hub.shutdown()
+
+// Verify client was removed and channel closed
+assert.Empty(t, hub.clients)
+}

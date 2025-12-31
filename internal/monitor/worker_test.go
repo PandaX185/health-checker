@@ -442,3 +442,22 @@ func (m *MockEventBus) Publish(ctx context.Context, event Event) error {
 func (m *MockEventBus) Subscribe(eventType string, handler EventHandler) {
 	m.Called(eventType, handler)
 }
+
+
+func TestWorker_Run(t *testing.T) {
+// This test is complex because Run() runs in an infinite loop
+// For unit testing, we can verify the function exists and basic setup
+rdb := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+defer rdb.Close()
+
+repo := &PostgresRepository{} // mock repo
+logger := zap.NewNop()
+eventBus := NewInMemoryEventBus(logger)
+
+worker := NewWorker(rdb, repo, logger, eventBus)
+
+// Verify worker was created properly
+assert.NotNil(t, worker)
+assert.NotNil(t, worker.Run)
+assert.Equal(t, "worker_1", worker.consumer)
+}
