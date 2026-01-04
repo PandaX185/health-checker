@@ -41,13 +41,11 @@ func main() {
 
 	log.Info("Starting Health Checker Application")
 
-	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancelTimeout()
-
 	var dbPool *pgxpool.Pool
 	var err error
-	maxRetries := 1
+	maxRetries := 5
 	for i := 0; i < maxRetries; i++ {
+		timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
 		dbPool, err = database.New(timeoutCtx, os.Getenv("DATABASE_URL"), log.Named("Database"))
 		if err == nil {
 			break
@@ -57,6 +55,7 @@ func main() {
 			log.Warn("Database connection failed, retrying...", zap.Error(err), zap.Duration("wait", waitTime))
 			time.Sleep(waitTime)
 		}
+		cancelTimeout()
 	}
 	if err != nil {
 		log.Fatal("Failed to connect to database after retries", zap.Error(err))
