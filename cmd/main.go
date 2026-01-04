@@ -46,7 +46,7 @@ func main() {
 
 	var dbPool *pgxpool.Pool
 	var err error
-	maxRetries := 5
+	maxRetries := 1
 	for i := 0; i < maxRetries; i++ {
 		dbPool, err = database.New(timeoutCtx, os.Getenv("DATABASE_URL"), log.Named("Database"))
 		if err == nil {
@@ -61,7 +61,6 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to connect to database after retries", zap.Error(err))
 	}
-	defer database.Close()
 
 	// if err := migrations.Rollback(dbPool); err != nil {
 	// 	log.Fatal("Database rollback failed", zap.Error(err))

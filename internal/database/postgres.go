@@ -2,54 +2,28 @@ package database
 
 import (
 	"context"
-	"sync"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
 
-var (
-	pool *pgxpool.Pool
-	once sync.Once
-)
-
 func New(ctx context.Context, connString string, logger *zap.Logger) (*pgxpool.Pool, error) {
-	var err error
-	once.Do(func() {
-		config, cfgErr := pgxpool.ParseConfig(connString)
-		if cfgErr != nil {
-			err = cfgErr
-			return
-		}
+	config, err := pgxpool.ParseConfig(connString)
+	if err != nil {
+		return nil, err
+	}
 
-		pool, err = pgxpool.NewWithConfig(ctx, config)
-		if err != nil {
-			return
-		}
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		return nil, err
+	}
 
-		if pingErr := pool.Ping(ctx); pingErr != nil {
-			err = pingErr
-			pool = nil // Ensure we return nil on error
-			return
-		}
-	})
+	if err := pool.Ping(ctx); err != nil {
+		logger.Error("Failed to ping database", zap.Error(err))
+		pool.Close()
+		return nil, err
+	}
 
 	logger.Info("Connected to PostgreSQL database")
-	return pool, err
-}
-
-func Get() *pgxpool.Pool {
-	return pool
-}
-
-func Close() {
-	if pool != nil {
-		pool.Close()
-	}
-}
-
-// Reset resets the singleton for testing purposes
-func Reset() {
-	pool = nil
-	once = sync.Once{}
+	return pool, nil
 }
